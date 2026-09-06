@@ -72,6 +72,17 @@ stages:
                 aws ecr get-login-password --region "${REGION}" | \
                   docker login --username AWS --password-stdin "${REGISTRY}"
 
+                REPO_NAME="${IMAGE_REPOSITORY#*/}"
+                IMAGE_TAG="$(Build.SourceVersion)"
+                if aws ecr describe-images \
+                  --repository-name "${REPO_NAME}" \
+                  --region "${REGION}" \
+                  --image-ids imageTag="${IMAGE_TAG}" \
+                  >/dev/null 2>&1; then
+                  echo "Image ${IMAGE} already exists (immutable tag); skipping build/push"
+                  exit 0
+                fi
+
                 docker buildx create --name ci-amd64 --driver docker-container --use 2>/dev/null \
                   || docker buildx use ci-amd64
                 docker buildx inspect --bootstrap
