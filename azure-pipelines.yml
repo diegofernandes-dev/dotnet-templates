@@ -1,5 +1,13 @@
+resources:
+  repositories:
+    - repository: dotnetTemplates
+      type: github
+      name: diegofernandes-dev/dotnet-templates
+      endpoint: github-diegofernandes-dev
+      ref: refs/tags/v0.1.0
+
 extends:
-  template: pipeline/templates/dotnet-k8s.yml
+  template: pipeline/templates/dotnet-k8s.yml@dotnetTemplates
   parameters:
     appName: sample-api
 
