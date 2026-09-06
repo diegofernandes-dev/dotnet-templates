@@ -4,31 +4,12 @@ resources:
       type: github
       name: diegofernandes-dev/pipeline-template
       endpoint: github-diegofernandes-dev
-      ref: refs/tags/v0.1.1
+      ref: refs/tags/v0.2.0
 
 extends:
-  template: pipeline/templates/dotnet-k8s.yml@dotnetTemplates
+  template: pipeline/templates/dotnet-ci.yml@dotnetTemplates
   parameters:
     appName: sample-api
-
     projectPath: src/Sample.Api/Sample.Api.csproj
-
+    buildPath: Sample.sln
     imageRepository: 448003890252.dkr.ecr.us-east-1.amazonaws.com/sample-api
-
-    helmReleaseName: sample-api
-
-    environments:
-      - name: dev
-        azureEnvironment: develop
-        poolName: Self-Hosted-Rancher
-        namespace: sample-api-dev
-
-      - name: hml
-        azureEnvironment: homolog
-        poolName: Self-Hosted-Rancher
-        namespace: sample-api-hml
-
-      - name: prd
-        azureEnvironment: production
-        poolName: Self-Hosted-Rancher
-        namespace: sample-api-prd
