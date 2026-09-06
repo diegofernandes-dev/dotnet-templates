@@ -1,6 +1,6 @@
-# pipeline-template
+# dotnet-templates
 
-Sample .NET API consumer for the platform templates in [`diegofernandes-dev/dotnet-templates`](https://github.com/diegofernandes-dev/dotnet-templates).
+Sample .NET API consumer for the platform templates in [`diegofernandes-dev/pipeline-template`](https://github.com/diegofernandes-dev/pipeline-template).
 
 This repository owns only application concerns:
 
@@ -10,7 +10,7 @@ global.json
 azure-pipelines.yml (bootstrap)
 ```
 
-Platform assets (YAML template, Dockerfile, Helm chart, contract tests) live in `dotnet-templates`.
+Platform assets (YAML template, Dockerfile, Helm chart, contract tests) live in `pipeline-template`.
 
 ## Sample.Api
 
@@ -27,9 +27,9 @@ resources:
   repositories:
     - repository: dotnetTemplates
       type: github
-      name: diegofernandes-dev/dotnet-templates
+      name: diegofernandes-dev/pipeline-template
       endpoint: github-diegofernandes-dev
-      ref: refs/tags/v0.1.0
+      ref: refs/tags/v0.1.1
 
 extends:
   template: pipeline/templates/dotnet-k8s.yml@dotnetTemplates
@@ -55,4 +55,4 @@ Required alias: **`dotnetTemplates`**. Platform ref must be immutable (`refs/tag
 | Environments | `develop`, `homolog`, `production` |
 | Namespaces | `sample-api-dev`, `sample-api-hml`, `sample-api-prd` |
 
-See the [`dotnet-templates` README](https://github.com/diegofernandes-dev/dotnet-templates) for platform ownership, build-once semantics, checkout paths, and supported deployment model.
+See the [`pipeline-template` README](https://github.com/diegofernandes-dev/pipeline-template) for platform ownership, build-once semantics, checkout paths, and supported deployment model.

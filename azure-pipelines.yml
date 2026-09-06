@@ -2,9 +2,9 @@ resources:
   repositories:
     - repository: dotnetTemplates
       type: github
-      name: diegofernandes-dev/dotnet-templates
+      name: diegofernandes-dev/pipeline-template
       endpoint: github-diegofernandes-dev
-      ref: refs/tags/v0.1.0
+      ref: refs/tags/v0.1.1
 
 extends:
   template: pipeline/templates/dotnet-k8s.yml@dotnetTemplates
