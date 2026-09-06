@@ -4,7 +4,8 @@
 **/bin/
 **/obj/
 **/.DS_Store
-helm/
 *.md
 .gitignore
 .dockerignore
+pipeline/helm/
+pipeline/templates/

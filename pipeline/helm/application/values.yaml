@@ -1,11 +1,13 @@
+application:
+  name: ""
+
 replicaCount: 1
 
 image:
   repository: ""
   tag: ""
 
-imagePullSecrets:
-  - name: ecr-pull
+imagePullSecrets: []
 
 containerPort: 8080
 
