@@ -64,8 +64,13 @@ stages:
 
           - script: |
               set -euo pipefail
+              IMAGE_REPOSITORY="${{ parameters.imageRepository }}"
+              REGISTRY="${IMAGE_REPOSITORY%%/*}"
+              REGION="$(echo "${REGISTRY}" | sed -n 's/.*\.dkr\.ecr\.\([^.]*\)\.amazonaws\.com.*/\1/p')"
               ASSEMBLY_NAME="$(basename "${{ parameters.projectPath }}" .csproj)"
-              IMAGE="${{ parameters.imageRepository }}:$(Build.SourceVersion)"
+              IMAGE="${IMAGE_REPOSITORY}:$(Build.SourceVersion)"
+              aws ecr get-login-password --region "${REGION}" \
+                | docker login --username AWS --password-stdin "${REGISTRY}"
               docker build \
                 -f pipeline/docker/dotnet.Dockerfile \
                 --build-arg PROJECT_PATH="${{ parameters.projectPath }}" \
