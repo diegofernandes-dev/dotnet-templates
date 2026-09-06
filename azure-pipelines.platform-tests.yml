@@ -1,0 +1,33 @@
+# Platform repository validation only.
+# Do not wire this into consumer application pipelines.
+# Register this YAML as a separate Azure DevOps pipeline for diegofernandes-dev/pipeline-template.
+
+trigger:
+  branches:
+    include:
+      - main
+
+pr:
+  branches:
+    include:
+      - main
+
+pool:
+  vmImage: ubuntu-24.04
+
+steps:
+  - checkout: self
+
+  - script: |
+      set -euo pipefail
+      sudo apt-get update
+      sudo apt-get install -y python3-venv python3-pip
+      curl -fsSL https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
+      helm version
+      python3 --version
+    displayName: Install Python venv and Helm
+
+  - script: |
+      set -euo pipefail
+      ./tests/run-tests.sh
+    displayName: Run platform contract tests

@@ -319,7 +319,29 @@ extends:
 
 Do **not** pass `ciPoolName`. Normally do **not** pass `awsServiceConnection` (platform default applies).
 
+## Platform contract tests
+
+Structural tests for this **platform repository** (not for consumer application pipelines).
+
+They protect template and Helm chart invariants already implemented here: CI hosted plane, OIDC surface, single `linux/amd64` publish, immutable `$(Build.SourceVersion)` promotion, generic multi-environment deployment jobs, internal chart path, and Helm render contracts (identity, selectors, probes, Service, `imagePullSecrets`).
+
+Run locally:
+
+```bash
+./tests/run-tests.sh
+```
+
+Requires `python3` and `helm` on `PATH`. Dependencies are installed into `tests/.venv` from `tests/requirements.txt`.
+
+| Layer | What it covers |
+|-------|----------------|
+| Local contract tests | Deterministic structural checks + `helm lint` / `helm template` |
+| Azure DevOps integration | Real template expansion, OIDC/STS/ECR, private cluster deploy |
+
+Optional platform CI: point a separate Azure DevOps pipeline at [`azure-pipelines.platform-tests.yml`](azure-pipelines.platform-tests.yml). Do **not** add these tests to `pipeline/templates/dotnet-k8s.yml`.
+
 ## Local lab note (not a platform contract)
+
 
 The official CI artifact is **`linux/amd64`**.
 
@@ -356,3 +378,4 @@ That strategy is **not** part of this slice.
 - No approvals, checks, or gates on Azure DevOps Environments yet
 - No values files per environment; one image and the same chart settings for all targets
 - No `linux/arm64` / multi-arch image index (platform runtime target is `linux/amd64` only)
+- Helm chart does not yet `required` `application.name` / `image.repository` / `image.tag`; empty values still render (documented by negative contract tests)
