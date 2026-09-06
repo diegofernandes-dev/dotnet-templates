@@ -1,0 +1,10 @@
+.git
+.vs
+.vscode
+**/bin/
+**/obj/
+**/.DS_Store
+helm/
+*.md
+.gitignore
+.dockerignore

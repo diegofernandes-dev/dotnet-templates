@@ -1,0 +1,13 @@
+replicaCount: 1
+
+image:
+  repository: ""
+  tag: ""
+
+imagePullSecrets:
+  - name: ecr-pull
+
+containerPort: 8080
+
+service:
+  port: 80

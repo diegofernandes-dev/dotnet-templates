@@ -1,0 +1,11 @@
+extends:
+  template: pipeline/templates/dotnet-k8s.yml
+  parameters:
+    appName: sample-api
+    projectPath: src/Sample.Api/Sample.Api.csproj
+    imageRepository: 448003890252.dkr.ecr.us-east-1.amazonaws.com/sample-api
+    ciPoolName: Self-Hosted-Rancher
+    deployPoolName: Self-Hosted-Rancher
+    kubernetesNamespace: sample-api
+    helmReleaseName: sample-api
+    helmChartPath: helm/sample-api

@@ -1,0 +1,99 @@
+parameters:
+  - name: appName
+    type: string
+  - name: projectPath
+    type: string
+  - name: imageRepository
+    type: string
+  - name: ciPoolName
+    type: string
+    default: Default
+  - name: deployPoolName
+    type: string
+  - name: kubernetesNamespace
+    type: string
+  - name: helmReleaseName
+    type: string
+  - name: helmChartPath
+    type: string
+
+stages:
+  - stage: CI
+    displayName: CI
+    jobs:
+      - job: Build
+        displayName: Build ${{ parameters.appName }}
+        pool:
+          name: ${{ parameters.ciPoolName }}
+        steps:
+          - checkout: self
+
+          - task: UseDotNet@2
+            displayName: Use .NET 10
+            inputs:
+              packageType: sdk
+              version: 10.0.x
+
+          - script: dotnet restore "${{ parameters.projectPath }}"
+            displayName: Restore
+
+          - script: dotnet build "${{ parameters.projectPath }}" -c Release --no-restore
+            displayName: Build
+
+          - script: dotnet test "${{ parameters.projectPath }}" -c Release --no-build --no-restore
+            displayName: Test
+
+          - script: |
+              set -euo pipefail
+              IMAGE_REPOSITORY="${{ parameters.imageRepository }}"
+              REPO_NAME="${IMAGE_REPOSITORY#*/}"
+              REGISTRY="${IMAGE_REPOSITORY%%/*}"
+              REGION="$(echo "${REGISTRY}" | sed -n 's/.*\.dkr\.ecr\.\([^.]*\)\.amazonaws\.com.*/\1/p')"
+              if [ -z "${REGION}" ] || [ -z "${REPO_NAME}" ]; then
+                echo "Invalid imageRepository: ${IMAGE_REPOSITORY}" >&2
+                exit 1
+              fi
+              if ! aws ecr describe-repositories --repository-names "${REPO_NAME}" --region "${REGION}" >/dev/null 2>&1; then
+                aws ecr create-repository \
+                  --repository-name "${REPO_NAME}" \
+                  --region "${REGION}" \
+                  --image-scanning-configuration scanOnPush=false \
+                  --encryption-configuration encryptionType=AES256
+              fi
+            displayName: Ensure ECR repository
+
+          - script: |
+              set -euo pipefail
+              ASSEMBLY_NAME="$(basename "${{ parameters.projectPath }}" .csproj)"
+              IMAGE="${{ parameters.imageRepository }}:$(Build.SourceVersion)"
+              docker build \
+                -f pipeline/docker/dotnet.Dockerfile \
+                --build-arg PROJECT_PATH="${{ parameters.projectPath }}" \
+                --build-arg ASSEMBLY_NAME="${ASSEMBLY_NAME}" \
+                -t "${IMAGE}" \
+                .
+              docker push "${IMAGE}"
+            displayName: Docker build and push
+
+  - stage: Deploy
+    displayName: Deploy
+    dependsOn: CI
+    jobs:
+      - job: HelmDeploy
+        displayName: Helm deploy ${{ parameters.appName }}
+        pool:
+          name: ${{ parameters.deployPoolName }}
+        steps:
+          - checkout: self
+
+          - script: |
+              set -euo pipefail
+              helm upgrade --install "${{ parameters.helmReleaseName }}" "${{ parameters.helmChartPath }}" \
+                --namespace "${{ parameters.kubernetesNamespace }}" \
+                --create-namespace \
+                --set image.repository="${{ parameters.imageRepository }}" \
+                --set image.tag="$(Build.SourceVersion)" \
+                --wait \
+                --atomic \
+                --timeout 5m
+            displayName: Helm upgrade --install
