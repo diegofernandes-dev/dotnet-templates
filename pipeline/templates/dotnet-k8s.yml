@@ -5,13 +5,13 @@ parameters:
     type: string
   - name: imageRepository
     type: string
-  - name: ciPoolName
-    type: string
-    default: Default
   - name: helmReleaseName
     type: string
   - name: environments
     type: object
+  - name: awsServiceConnection
+    type: string
+    default: aws-ecr-oidc
 
 stages:
   - stage: CI
@@ -20,7 +20,7 @@ stages:
       - job: Build
         displayName: Build ${{ parameters.appName }}
         pool:
-          name: ${{ parameters.ciPoolName }}
+          vmImage: ubuntu-24.04
         steps:
           - checkout: self
 
@@ -42,16 +42,48 @@ stages:
           - script: |
               set -euo pipefail
               IMAGE_REPOSITORY="${{ parameters.imageRepository }}"
-              ASSEMBLY_NAME="$(basename "${{ parameters.projectPath }}" .csproj)"
-              IMAGE="${IMAGE_REPOSITORY}:$(Build.SourceVersion)"
-              docker build \
-                -f pipeline/docker/dotnet.Dockerfile \
-                --build-arg PROJECT_PATH="${{ parameters.projectPath }}" \
-                --build-arg ASSEMBLY_NAME="${ASSEMBLY_NAME}" \
-                -t "${IMAGE}" \
-                .
-              docker push "${IMAGE}"
-            displayName: Docker build and push
+              if [[ ! "$IMAGE_REPOSITORY" =~ ^[0-9]+\.dkr\.ecr\.[a-z0-9-]+\.amazonaws\.com/.+ ]]; then
+                echo "imageRepository must match <account>.dkr.ecr.<region>.amazonaws.com/<repo>" >&2
+                exit 1
+              fi
+              REGISTRY="${IMAGE_REPOSITORY%%/*}"
+              REGION="$(echo "$REGISTRY" | cut -d. -f4)"
+              echo "##vso[task.setvariable variable=EcrRegion]${REGION}"
+            displayName: Resolve ECR registry
+
+          - task: AWSShellScript@1
+            displayName: Authenticate, build and push linux/amd64 image
+            inputs:
+              awsCredentials: ${{ parameters.awsServiceConnection }}
+              regionName: $(EcrRegion)
+              scriptType: inline
+              inlineScript: |
+                set -euo pipefail
+                IMAGE_REPOSITORY="${{ parameters.imageRepository }}"
+                REGISTRY="${IMAGE_REPOSITORY%%/*}"
+                REGION="$(EcrRegion)"
+                PROJECT_PATH="${{ parameters.projectPath }}"
+                ASSEMBLY_NAME="${PROJECT_PATH##*/}"
+                ASSEMBLY_NAME="${ASSEMBLY_NAME%.csproj}"
+                IMAGE="${IMAGE_REPOSITORY}:$(Build.SourceVersion)"
+
+                aws sts get-caller-identity
+
+                aws ecr get-login-password --region "${REGION}" | \
+                  docker login --username AWS --password-stdin "${REGISTRY}"
+
+                docker buildx create --name ci-amd64 --driver docker-container --use 2>/dev/null \
+                  || docker buildx use ci-amd64
+                docker buildx inspect --bootstrap
+
+                docker buildx build \
+                  --platform linux/amd64 \
+                  -f pipeline/docker/dotnet.Dockerfile \
+                  --build-arg PROJECT_PATH="${PROJECT_PATH}" \
+                  --build-arg ASSEMBLY_NAME="${ASSEMBLY_NAME}" \
+                  -t "${IMAGE}" \
+                  --push \
+                  .
 
   - ${{ each env in parameters.environments }}:
     - stage: Deploy_${{ env.name }}

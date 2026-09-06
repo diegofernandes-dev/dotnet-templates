@@ -7,8 +7,6 @@ extends:
 
     imageRepository: 448003890252.dkr.ecr.us-east-1.amazonaws.com/sample-api
 
-    ciPoolName: Self-Hosted-Rancher
-
     helmReleaseName: sample-api
 
     environments:
